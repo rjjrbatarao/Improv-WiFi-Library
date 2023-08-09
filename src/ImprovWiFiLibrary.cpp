@@ -211,9 +211,21 @@ void ImprovWiFi::getAvailableWifiNetworks()
 	
   for (int id = 0; id < networkNum; ++id)
   {
+	#if defined(ESP32)
+    std::vector<std::string> wifinetworks = {
+        WiFi.SSID(id).c_str(),
+        std::to_string(WiFi.RSSI(id)),
+        (WiFi.encryptionType(id) == WIFI_AUTH_OPEN ? "NO" : "YES")
+    };
+
     std::vector<uint8_t> data = build_rpc_response(
-        ImprovTypes::GET_WIFI_NETWORKS, {WiFi.SSID(id), String(WiFi.RSSI(id)), (WiFi.encryptionType(id) == WIFI_AUTH_OPEN ? "NO" : "YES")}, false);
-    sendResponse(data);
+        ImprovTypes::GET_WIFI_NETWORKS, wifinetworks, false);	
+	#endif
+	#if defined(ESP8266)  
+    std::vector<uint8_t> data = build_rpc_response(
+    ImprovTypes::GET_WIFI_NETWORKS, {WiFi.SSID(id), String(WiFi.RSSI(id)), (WiFi.encryptionType(id) == WIFI_AUTH_OPEN ? "NO" : "YES")}, false);
+    #endif
+	sendResponse(data);
     delay(1);
   } 
   // final response
