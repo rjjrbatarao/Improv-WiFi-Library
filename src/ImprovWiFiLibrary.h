@@ -1,8 +1,16 @@
 #pragma once
-
+#if defined(ESP32)
 #include <WiFi.h>
+#elif defined(ESP8266)
+#include <ESP8266WiFi.h>
+#endif
 #include <Stream.h>
+#include <cstdint>
+#include <functional>
+#include <string>
+#include <vector>
 #include "ImprovTypes.h"
+
 
 #ifdef ARDUINO
 #include <Arduino.h>
@@ -58,8 +66,10 @@ private:
   bool parseImprovSerial(size_t position, uint8_t byte, const uint8_t *buffer);
   ImprovTypes::ImprovCommand parseImprovData(const std::vector<uint8_t> &data, bool check_checksum = true);
   ImprovTypes::ImprovCommand parseImprovData(const uint8_t *data, size_t length, bool check_checksum = true);
-  std::vector<uint8_t> build_rpc_response(ImprovTypes::Command command, const std::vector<std::string> &datum, bool add_checksum);
-
+  std::vector<uint8_t> build_rpc_response(ImprovTypes::Command command, const std::vector<std::string> &datum, bool add_checksum = true);
+#ifdef ARDUINO
+std::vector<uint8_t> build_rpc_response(ImprovTypes::Command command, const std::vector<String> &datum, bool add_checksum = true);
+#endif  // ARDUINO
 public:
   /**
    * ## Constructors

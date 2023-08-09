@@ -1,5 +1,9 @@
 #include "ImprovWiFiLibrary.h"
 
+#if defined(ESP8266)
+#define WIFI_AUTH_OPEN ENC_TYPE_NONE
+#endif
+
 void ImprovWiFi::handleSerial()
 {
 
@@ -204,20 +208,14 @@ bool ImprovWiFi::tryConnectToWifi(const char *ssid, const char *password)
 void ImprovWiFi::getAvailableWifiNetworks()
 {
   int networkNum = WiFi.scanNetworks();
-
+	
   for (int id = 0; id < networkNum; ++id)
   {
-    std::vector<std::string> wifinetworks = {
-        WiFi.SSID(id).c_str(),
-        std::to_string(WiFi.RSSI(id)),
-        (WiFi.encryptionType(id) == WIFI_AUTH_OPEN ? "NO" : "YES")
-    };
-
     std::vector<uint8_t> data = build_rpc_response(
-        ImprovTypes::GET_WIFI_NETWORKS, wifinetworks, false);
+        ImprovTypes::GET_WIFI_NETWORKS, {WiFi.SSID(id), String(WiFi.RSSI(id)), (WiFi.encryptionType(id) == WIFI_AUTH_OPEN ? "NO" : "YES")}, false);
     sendResponse(data);
     delay(1);
-  }
+  } 
   // final response
   std::vector<uint8_t> data =
       build_rpc_response(ImprovTypes::GET_WIFI_NETWORKS, std::vector<std::string>{}, false);
@@ -416,3 +414,28 @@ std::vector<uint8_t> ImprovWiFi::build_rpc_response(ImprovTypes::Command command
   }
   return out;
 }
+
+#ifdef ARDUINO
+std::vector<uint8_t> ImprovWiFi::build_rpc_response(ImprovTypes::Command command, const std::vector<String> &datum, bool add_checksum) {
+  std::vector<uint8_t> out;
+  uint32_t length = 0;
+  out.push_back(command);
+  for (const auto &str : datum) {
+    uint8_t len = str.length();
+    length += len;
+    out.push_back(len);
+    out.insert(out.end(), str.begin(), str.end());
+  }
+  out.insert(out.begin() + 1, length);
+
+  if (add_checksum) {
+    uint32_t calculated_checksum = 0;
+
+    for (uint8_t byte : out) {
+      calculated_checksum += byte;
+    }
+    out.push_back(calculated_checksum);
+  }
+  return out;
+}
+#endif  // ARDUINO
